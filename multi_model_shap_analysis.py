@@ -182,6 +182,12 @@ def calculate_shap_dependency_slopes(model, required_features=None):
             slope, intercept, r_value, p_value, std_err = linregress(x_values, y_values)
 
             print(f"  SLOPE RESULT: {slope:.8f}, r²: {r_value**2:.4f}")
+            
+            feature_range = x_values.max() - x_values.min()
+            normalized_slope = slope * feature_range  # or feature_range/40000 for scaling
+
+            # Print both for comparison
+            print(f"  Raw slope: {slope:.8f}, Normalized: {normalized_slope:.8f}")
 
             # Store the slope
             slopes[feature] = slope
@@ -278,225 +284,225 @@ def train_model_and_extract_slopes(seed, years):
         return None
 
 
-def create_violin_plot(slopes_collection, output_path):
-    """
-    Create a violin plot of SHAP dependency slopes for only load_forecast, solar_forecast, and wind_forecast.
-
-    Arguments:
-        slopes_collection: Dictionary mapping feature names to lists of slope values
-        output_path: Path to save the plot
-
-    Returns:
-        Path to the saved plot
-    """
-    # Map internal feature names to display names
-    feature_display_names = {
-        "load_forecast": "Load day-ahead",
-        "solar_forecast": "Solar day-ahead",
-        "wind_forecast": "Wind day-ahead",
-    }
-
-    # Filter to include only the three specified features
-    filtered_features = ["load_forecast", "solar_forecast", "wind_forecast"]
-
-    # Keep only features that exist in the slopes_collection
-    feature_names = [name for name in filtered_features if name in slopes_collection]
-
-    # If none of the requested features are available, print a warning
-    if not feature_names:
-        print(
-            "Warning: None of the specified features (load_forecast, solar_forecast, wind_forecast) found in data!"
-        )
-        # Fall back to all features if none of the specified ones exist
-        feature_names = list(slopes_collection.keys())
-
-    feature_values = [np.array(slopes_collection[name]) for name in feature_names]
-    positions = list(range(1, len(feature_names) + 1))
-
-    # Create figure
-    plt.figure(figsize=(10, 6))
-
-    # Set colors to match the reference image - one color per feature
-    colors = ["#D5F0F2", "#65B1C1", "#3D629B"]
-
-    # Create violin plot
-    violin_parts = plt.violinplot(
-        feature_values,
-        positions=positions,
-        showmeans=False,
-        showmedians=False,
-        showextrema=False,
-    )
-
-    # Customize violin appearance
-    for i, pc in enumerate(violin_parts["bodies"]):
-        pc.set_facecolor(colors[i % len(colors)])
-        pc.set_edgecolor("black")
-        pc.set_alpha(1)
-
-    # Add box plots inside the violins
-    plt.boxplot(
-        feature_values,
-        positions=positions,
-        widths=0.15,
-        patch_artist=False,
-        boxprops=dict(linestyle="-", linewidth=1.5, color="black"),
-        whiskerprops=dict(linestyle="-", linewidth=1.5, color="black"),
-        medianprops=dict(linestyle="-", linewidth=1.5, color="black"),
-        capprops=dict(linestyle="-", linewidth=1.5, color="black"),
-        flierprops=dict(marker=".", markerfacecolor="black", markersize=3),
-    )
-
-    # Customize the plot
-    plt.xticks(
-        positions,
-        [feature_display_names.get(name, name) for name in feature_names],
-        fontsize=12,
-    )
-    plt.ylabel("Slope [EUR MWh$^{-2}$]", fontsize=12)
-    plt.title("d", loc="left", fontweight="bold", fontsize=14)
-
-    # Set y-axis limits based on data
-    y_min = min([np.min(vals) for vals in feature_values])
-    y_max = max([np.max(vals) for vals in feature_values])
-    margin = (y_max - y_min) * 0.1
-    plt.ylim(y_min - margin, y_max + margin)
-
-    # Add grid lines
-    plt.grid(True, axis="y", linestyle="--", alpha=0.3)
-
-    # Lighten the border
-    for spine in plt.gca().spines.values():
-        spine.set_edgecolor("#888888")
-
-    # Save figure
-    plt.tight_layout()
-    plt.savefig(output_path, dpi=300, bbox_inches="tight")
-    plt.close()
-
-    print(
-        f"Violin plot created with {len(feature_names)} features: {', '.join(feature_names)}"
-    )
-
-    return output_path
-
-## Claude version anhand des papers
 # def create_violin_plot(slopes_collection, output_path):
 #     """
-#     Create a violin plot of SHAP dependency slopes matching the style from the reference paper.
-    
+#     Create a violin plot of SHAP dependency slopes for only load_forecast, solar_forecast, and wind_forecast.
+
 #     Arguments:
 #         slopes_collection: Dictionary mapping feature names to lists of slope values
 #         output_path: Path to save the plot
-        
+
 #     Returns:
 #         Path to the saved plot
 #     """
-#     import matplotlib.pyplot as plt
-#     import numpy as np
-    
 #     # Map internal feature names to display names
 #     feature_display_names = {
-#         'load_forecast': 'Load day-ahead',
-#         'solar_forecast': 'Solar day-ahead',
-#         'wind_forecast': 'Wind day-ahead'
+#         "load_forecast": "Load day-ahead",
+#         "solar_forecast": "Solar day-ahead",
+#         "wind_forecast": "Wind day-ahead",
 #     }
-    
-#     # Specified features in the exact order from the paper
-#     filtered_features = ['load_forecast', 'solar_forecast', 'wind_forecast']
-    
+
+#     # Filter to include only the three specified features
+#     filtered_features = ["load_forecast", "solar_forecast", "wind_forecast"]
+
 #     # Keep only features that exist in the slopes_collection
 #     feature_names = [name for name in filtered_features if name in slopes_collection]
-    
+
 #     # If none of the requested features are available, print a warning
 #     if not feature_names:
-#         print("Warning: None of the specified features (load_forecast, solar_forecast, wind_forecast) found in data!")
-#         return None
-    
-#     # Get values and possibly negate renewable generation slopes as mentioned in the paper
-#     # "we simplify the comparison of the three features by multiplying the renewable generations by −1"
-#     feature_values = []
-#     for name in feature_names:
-#         values = np.array(slopes_collection[name])
-#         # Check if renewable feature (solar or wind) AND if values are primarily negative
-#         if name in ['solar_forecast', 'wind_forecast'] and np.median(values) < 0:
-#             values = -values  # Negate values for renewable generation as described in the paper
-#             print(f"Negating values for {name} as per paper methodology")
-#         feature_values.append(values)
-    
+#         print(
+#             "Warning: None of the specified features (load_forecast, solar_forecast, wind_forecast) found in data!"
+#         )
+#         # Fall back to all features if none of the specified ones exist
+#         feature_names = list(slopes_collection.keys())
+
+#     feature_values = [np.array(slopes_collection[name]) for name in feature_names]
 #     positions = list(range(1, len(feature_names) + 1))
-    
-#     # Create figure with specific size to match paper
-#     plt.figure(figsize=(12, 5))
-    
-#     # Set colors to exactly match the reference image
-#     colors = ['#D5F0F2', '#65B1C1', '#3D629B']  # Light blue, medium blue, dark blue
-    
+
+#     # Create figure
+#     plt.figure(figsize=(10, 6))
+
+#     # Set colors to match the reference image - one color per feature
+#     colors = ["#D5F0F2", "#65B1C1", "#3D629B"]
+
 #     # Create violin plot
 #     violin_parts = plt.violinplot(
 #         feature_values,
 #         positions=positions,
-#         showmeans=False, 
+#         showmeans=False,
 #         showmedians=False,
-#         showextrema=False
+#         showextrema=False,
 #     )
-    
+
 #     # Customize violin appearance
-#     for i, pc in enumerate(violin_parts['bodies']):
+#     for i, pc in enumerate(violin_parts["bodies"]):
 #         pc.set_facecolor(colors[i % len(colors)])
-#         pc.set_edgecolor('black')
+#         pc.set_edgecolor("black")
 #         pc.set_alpha(1)
-    
-#     # Add box plots inside the violins - styled to match the paper
-#     boxplots = plt.boxplot(
+
+#     # Add box plots inside the violins
+#     plt.boxplot(
 #         feature_values,
 #         positions=positions,
 #         widths=0.15,
 #         patch_artist=False,
-#         boxprops=dict(linestyle='-', linewidth=1.5, color='black'),
-#         whiskerprops=dict(linestyle='-', linewidth=1.5, color='black'),
-#         medianprops=dict(linestyle='-', linewidth=1.5, color='black'),
-#         capprops=dict(linestyle='-', linewidth=1.5, color='black'),
-#         flierprops=dict(marker='.', markerfacecolor='black', markersize=3)
+#         boxprops=dict(linestyle="-", linewidth=1.5, color="black"),
+#         whiskerprops=dict(linestyle="-", linewidth=1.5, color="black"),
+#         medianprops=dict(linestyle="-", linewidth=1.5, color="black"),
+#         capprops=dict(linestyle="-", linewidth=1.5, color="black"),
+#         flierprops=dict(marker=".", markerfacecolor="black", markersize=3),
 #     )
-    
+
 #     # Customize the plot
-#     plt.xticks(positions, [feature_display_names.get(name, name) for name in feature_names], fontsize=12)
-#     plt.ylabel('Slope [EUR MWh$^{-2}$]', fontsize=12)  # Using LaTeX for superscript
-    
-#     # Add the "d" label in top-left corner as in the paper
-#     plt.title('d', loc='left', fontweight='bold', fontsize=14)
-    
-#     # Add grid lines (light gray, dashed)
-#     plt.grid(True, axis='y', linestyle='--', alpha=0.3)
-    
-#     # Set y-axis limits to match data range with a small margin
+#     plt.xticks(
+#         positions,
+#         [feature_display_names.get(name, name) for name in feature_names],
+#         fontsize=12,
+#     )
+#     plt.ylabel("Slope [EUR MWh$^{-2}$]", fontsize=12)
+#     plt.title("d", loc="left", fontweight="bold", fontsize=14)
+
+#     # Set y-axis limits based on data
 #     y_min = min([np.min(vals) for vals in feature_values])
 #     y_max = max([np.max(vals) for vals in feature_values])
 #     margin = (y_max - y_min) * 0.1
 #     plt.ylim(y_min - margin, y_max + margin)
-    
-#     # Make the plot background white and lighten the border
-#     plt.gca().set_facecolor('white')
+
+#     # Add grid lines
+#     plt.grid(True, axis="y", linestyle="--", alpha=0.3)
+
+#     # Lighten the border
 #     for spine in plt.gca().spines.values():
-#         spine.set_edgecolor('#888888')
-    
-#     # Save figure with high resolution
+#         spine.set_edgecolor("#888888")
+
+#     # Save figure
 #     plt.tight_layout()
-#     plt.savefig(output_path, dpi=300, bbox_inches='tight')
-#     print(f"Violin plot saved to: {output_path}")
-    
-#     # Create a version with scientific notation if needed
-#     plt.gca().ticklabel_format(axis='y', style='sci', scilimits=(0,0), useMathText=True)
-#     sci_output_path = output_path.replace('.png', '_scientific.png')
-#     plt.savefig(sci_output_path, dpi=300, bbox_inches='tight')
-#     print(f"Scientific notation version saved to: {sci_output_path}")
-    
+#     plt.savefig(output_path, dpi=300, bbox_inches="tight")
 #     plt.close()
-    
-#     print(f"Violin plot created with {len(feature_names)} features: {', '.join(feature_names)}")
-    
+
+#     print(
+#         f"Violin plot created with {len(feature_names)} features: {', '.join(feature_names)}"
+#     )
+
 #     return output_path
+
+# Claude version anhand des papers
+def create_violin_plot(slopes_collection, output_path):
+    """
+    Create a violin plot of SHAP dependency slopes matching the style from the reference paper.
+    
+    Arguments:
+        slopes_collection: Dictionary mapping feature names to lists of slope values
+        output_path: Path to save the plot
+        
+    Returns:
+        Path to the saved plot
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    # Map internal feature names to display names
+    feature_display_names = {
+        'load_forecast': 'Load day-ahead',
+        'solar_forecast': 'Solar day-ahead',
+        'wind_forecast': 'Wind day-ahead'
+    }
+    
+    # Specified features in the exact order from the paper
+    filtered_features = ['load_forecast', 'solar_forecast', 'wind_forecast']
+    
+    # Keep only features that exist in the slopes_collection
+    feature_names = [name for name in filtered_features if name in slopes_collection]
+    
+    # If none of the requested features are available, print a warning
+    if not feature_names:
+        print("Warning: None of the specified features (load_forecast, solar_forecast, wind_forecast) found in data!")
+        return None
+    
+    # Get values and possibly negate renewable generation slopes as mentioned in the paper
+    # "we simplify the comparison of the three features by multiplying the renewable generations by −1"
+    feature_values = []
+    for name in feature_names:
+        values = np.array(slopes_collection[name])
+        # Check if renewable feature (solar or wind) AND if values are primarily negative
+        if name in ['solar_forecast', 'wind_forecast'] and np.median(values) < 0:
+            values = -values  # Negate values for renewable generation as described in the paper
+            print(f"Negating values for {name} as per paper methodology")
+        feature_values.append(values)
+    
+    positions = list(range(1, len(feature_names) + 1))
+    
+    # Create figure with specific size to match paper
+    plt.figure(figsize=(12, 5))
+    
+    # Set colors to exactly match the reference image
+    colors = ['#D5F0F2', '#65B1C1', '#3D629B']  # Light blue, medium blue, dark blue
+    
+    # Create violin plot
+    violin_parts = plt.violinplot(
+        feature_values,
+        positions=positions,
+        showmeans=False, 
+        showmedians=False,
+        showextrema=False
+    )
+    
+    # Customize violin appearance
+    for i, pc in enumerate(violin_parts['bodies']):
+        pc.set_facecolor(colors[i % len(colors)])
+        pc.set_edgecolor('black')
+        pc.set_alpha(1)
+    
+    # Add box plots inside the violins - styled to match the paper
+    boxplots = plt.boxplot(
+        feature_values,
+        positions=positions,
+        widths=0.15,
+        patch_artist=False,
+        boxprops=dict(linestyle='-', linewidth=1.5, color='black'),
+        whiskerprops=dict(linestyle='-', linewidth=1.5, color='black'),
+        medianprops=dict(linestyle='-', linewidth=1.5, color='black'),
+        capprops=dict(linestyle='-', linewidth=1.5, color='black'),
+        flierprops=dict(marker='.', markerfacecolor='black', markersize=3)
+    )
+    
+    # Customize the plot
+    plt.xticks(positions, [feature_display_names.get(name, name) for name in feature_names], fontsize=12)
+    plt.ylabel('Slope [EUR MWh$^{-2}$]', fontsize=12)  # Using LaTeX for superscript
+    
+    # Add the "d" label in top-left corner as in the paper
+    plt.title('d', loc='left', fontweight='bold', fontsize=14)
+    
+    # Add grid lines (light gray, dashed)
+    plt.grid(True, axis='y', linestyle='--', alpha=0.3)
+    
+    # Set y-axis limits to match data range with a small margin
+    y_min = min([np.min(vals) for vals in feature_values])
+    y_max = max([np.max(vals) for vals in feature_values])
+    margin = (y_max - y_min) * 0.1
+    plt.ylim(y_min - margin, y_max + margin)
+    
+    # Make the plot background white and lighten the border
+    plt.gca().set_facecolor('white')
+    for spine in plt.gca().spines.values():
+        spine.set_edgecolor('#888888')
+    
+    # Save figure with high resolution
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"Violin plot saved to: {output_path}")
+    
+    # Create a version with scientific notation if needed
+    plt.gca().ticklabel_format(axis='y', style='sci', scilimits=(0,0), useMathText=True)
+    sci_output_path = output_path.replace('.png', '_scientific.png')
+    plt.savefig(sci_output_path, dpi=300, bbox_inches='tight')
+    print(f"Scientific notation version saved to: {sci_output_path}")
+    
+    plt.close()
+    
+    print(f"Violin plot created with {len(feature_names)} features: {', '.join(feature_names)}")
+    
+    return output_path
 
 
 def process_model(args):

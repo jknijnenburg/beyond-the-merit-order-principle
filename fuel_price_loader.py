@@ -212,18 +212,35 @@ def create_hourly_fuel_prices(oil_df, gas_df, year=2017):
     
     return merged_df
 
-if __name__ == "__main__":
-    print("=== Loading and Processing Fuel Price Data ===\n")
-    
-    # Load the raw data
+def process_fuel_prices(years=[2017, 2018, 2019]):
+    """Brennstoffpreise verarbeiten und stündliche interpolierte Daten erstellen"""
+
+    print("=== BRENNSTOFFPREISDATEN VERARBEITEN ===\n")
+
+    # Rohdaten laden
     oil_df = load_oil_prices()
     gas_df = load_gas_prices()
+
+    # Stündliche Brennstoffpreise erstellen - ANGEPASST für alle Jahre
+    all_data = []
+    for year in years:
+        print(f"\nVerarbeite Brennstoffpreise für das Jahr {year}...")
+        year_df = create_hourly_fuel_prices(oil_df, gas_df, year=year)
+        if year_df is not None:
+            all_data.append(year_df)
     
-    # Create hourly fuel prices
-    hourly_df = create_hourly_fuel_prices(oil_df, gas_df)
-    
-    if hourly_df is not None:
-        print("\nFuel price processing complete!")
-        print(f"Created hourly fuel price dataset with {len(hourly_df)} rows")
+    if all_data:
+        # Alle Jahre zusammenfügen
+        hourly_df = pd.concat(all_data, ignore_index=True)
+        print("\nBrennstoffpreisdaten erfolgreich verarbeitet!")
+        print(f"Stündlicher Brennstoffpreisdatensatz mit {len(hourly_df)} Zeilen erstellt")
+        
+        # Daten für zukünftige Verwendung speichern
+        fuel_prices_path = os.path.join(DATA_DIR, "processed_fuel_prices.xlsx")
+        hourly_df.to_excel(fuel_prices_path, index=False)
+        print(f"Verarbeitete Brennstoffpreise gespeichert unter {fuel_prices_path}")
+        
+        return hourly_df
     else:
-        print("\nFailed to create hourly fuel prices")
+        print("\nFehler beim Erstellen der stündlichen Brennstoffpreise")
+        return None
