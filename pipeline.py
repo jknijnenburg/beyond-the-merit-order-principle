@@ -99,7 +99,7 @@ if model is None:
     model = train.train_single_model(dataset, valid_features, save_path=MODEL_SAVE_PATH)
 
 #%%
-# 5. Modell trainieren oder vortrainiertes Modell laden und konsistente (10x) Modelle erstellen
+# 5. Modell trainieren oder vortrainiertes Modell laden und konsistente Modelle erstellen (best out of 10)
 
 # Prüfen ob vortrainierte konsistente Modelle vorhanden sind
 all_models = train.load_consistent_models(MODELS_SUMMARY_PATH)
@@ -153,27 +153,29 @@ PLOT_DIR = "./plots/"
 os.makedirs(PLOT_DIR, exist_ok=True)
 interaction_grid_path = figure_4.create_unified_visualizations(model, plot_dir=PLOT_DIR)
 
-# OR for ensemble/consistent models:
-# PLOT_DIR = "./plots/ensemble/"
-# os.makedirs(PLOT_DIR, exist_ok=True)
-# interaction_grid_path = figure_4_new.create_unified_visualizations(all_models, dataset, plot_dir=PLOT_DIR)
+#%%
+shap.plots.violin(model.shap_values, feature_names=model.feature_names)
 
-# Display the main visualization if needed
-# if interaction_grid_path and os.path.exists(interaction_grid_path):
-#     from IPython.display import Image
-#     Image(filename=interaction_grid_path)
+#%%
+# OR for ensemble/consistent models:
+PLOT_DIR = "./plots/ensemble/"
+os.makedirs(PLOT_DIR, exist_ok=True)
+interaction_grid_path = figure_4.create_unified_visualizations(all_models, dataset, plot_dir=PLOT_DIR)
 
 #%%
 import figure_5
-# figure_5.create_generation_ramp_dependency_plots(model)
+figure_5.create_generation_ramp_dependency_plots(model)
 
 
-# TODO: DAS IST GENAU DAS WAS ICH BEI DEN "OHNE INTERAKTION BRAUCHE!"
-# TODO: DAS IST GENAU DAS WAS ICH BEI DEN "OHNE INTERAKTION BRAUCHE!"
-# TODO: DAS IST GENAU DAS WAS ICH BEI DEN "OHNE INTERAKTION BRAUCHE!"
-# TODO: DAS IST GENAU DAS WAS ICH BEI DEN "OHNE INTERAKTION BRAUCHE!"
 # Option 2: Detailed plot with interaction values
 figure_5.create_detailed_dependency_plots(model)
+
+#%%
+# figure_5.create_generation_ramp_dependency_plots(all_models)
+
+
+# # Option 2: Detailed plot with interaction values
+# figure_5.create_detailed_dependency_plots(all_models)
 
 #%%
 # 8.1 Figure 3 replizieren

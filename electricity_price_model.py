@@ -429,15 +429,27 @@ class ElectricityPriceModel:
         self.y_test = y_test
 
         # Define parameter search space as mentioned in the paper
+        # param_grid = {
+        #     "num_leaves": [31, 50, 100, 150],
+        #     "learning_rate": [0.01, 0.05, 0.1, 0.2],
+        #     "n_estimators": [100, 200, 500, 1000],
+        #     "min_child_samples": [10, 20, 50, 100],
+        #     "subsample": [0.6, 0.7, 0.8, 0.9, 1.0],
+        #     "colsample_bytree": [0.6, 0.7, 0.8, 0.9, 1.0],
+        #     "reg_alpha": [0, 0.01, 0.1, 1.0],
+        #     "reg_lambda": [0, 0.01, 0.1, 1.0],
+        # }
+        
+        # Das bisher passendste Modell
         param_grid = {
-            "num_leaves": [31, 50, 100, 150],
-            "learning_rate": [0.01, 0.05, 0.1, 0.2],
-            "n_estimators": [100, 200, 500, 1000],
-            "min_child_samples": [10, 20, 50, 100],
-            "subsample": [0.6, 0.7, 0.8, 0.9, 1.0],
-            "colsample_bytree": [0.6, 0.7, 0.8, 0.9, 1.0],
-            "reg_alpha": [0, 0.01, 0.1, 1.0],
-            "reg_lambda": [0, 0.01, 0.1, 1.0],
+            "num_leaves": [100],
+            "learning_rate": [0.05],
+            "n_estimators": [100], # oder 99
+            "min_child_samples": [20],
+            "subsample": [1.0],
+            "colsample_bytree": [0.8],
+            "reg_alpha": [0],
+            "reg_lambda": [0.01],
         }
 
         # Random search for best hyperparameters as mentioned in the paper

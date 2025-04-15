@@ -124,8 +124,11 @@ def create_fixed_interaction_grid(model, output_path="fixed_shap_interactions_gr
                                 s=5, alpha=0.8)
         else:
             # Without interaction coloring (column 2)
-            scatter = ax.scatter(feature_values, shap_values, 
-                                color="#1F77B4", s=5, alpha=0.8)
+            main_effect = model.shap_interaction_values[:, feature_idx, feature_idx]
+            # scatter = ax.scatter(feature_values, shap_values, 
+            #                     color="#1F77B4", s=5, alpha=0.8)
+            scatter = ax.scatter(feature_values, main_effect, 
+                                 color="#1F77B4", s=5, alpha=0.8)
         
         ax.set_xlabel(feature_display_names.get(model.X_test.columns[feature_idx], 
                                             model.X_test.columns[feature_idx]))
